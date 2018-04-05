@@ -51,6 +51,34 @@ void setup() {
 
 //#define GPIO_OUTPUT_ON_OFF
 
+//read the inputs
+	/*
+		* write to the address
+		* write the register address:  REGISTER_INPUT_PORT
+		* *** repeated start, end transmission(false)
+		* Read from the address , get an ack back, 
+		* then we can do a read with while wire.available();
+	*/
+byte readInputs(){
+  byte inputValues = 0;
+  Wire.beginTransmission(qwiicGpioAddress);
+  Wire.write(REGISTER_INPUT_PORT);
+  Wire.endTransmission(false);
+  Wire.requestFrom(qwiicGpioAddress, 1);
+  
+  byte count = 0;
+  while(Wire.available()){
+  if(count == 0){
+	inputValues = Wire.read();
+  }
+  Wire.read(); //IGNORE remaining bytes, we only asked for 1.
+  count ++;
+	}
+	
+	return(inputValues); //use this later for bit masking.
+}
+
+
 void loop() {
 	
 #ifdef GPIO_OUTPUT_ON_OFF
@@ -73,32 +101,13 @@ void loop() {
   
   
   
-	//read the inputs
-	/*
-		* write to the address
-		* write the register address:  REGISTER_INPUT_PORT
-		* *** repeated start, end transmission(false)
-		* Read from the address , get an ack back, 
-		* then we can do a read with while wire.available();
-	*/
-  byte portPinReadByte = 0;
-  Wire.beginTransmission(qwiicGpioAddress);
-  Wire.write(REGISTER_INPUT_PORT);
-  Wire.endTransmission(false);
-  Wire.requestFrom(qwiicGpioAddress, 1);
+
+  byte inputs = readInputs();
   
-  byte count = 0;
-  while(Wire.available() > 0){
-	if(count == 0){
-	portPinReadByte = Wire.read();
-	}
-	count++;
-	Wire.read(); //don't collect
-  }
   Serial.println("test >> ");
-  Serial.print(portPinReadByte);
+  Serial.print(readInputs());
   
-  if(portPinReadByte >>7 == 0){
+  if(inputs >>7 == 0){
 	 delay(100);
 
   Wire.beginTransmission(qwiicGpioAddress);
@@ -114,42 +123,8 @@ void loop() {
   Wire.endTransmission();
  
   delay(100);
-  }	  
-  /*while(Wire.available()){
-   portPinReadByte = Wire.read();
-  }
-  Wire.endTransmission();
+  }	 
   
-	Serial.print("test >>> ");
-  	Serial.println(portPinReadByte);
-
-  
-  //(portPinReadByte & 0b10000000) == 0x80
-  
-  if(portPinReadByte == 1 ){
-	//case its a 1 
-	Serial.print("case 1");
-  }
-  else if(portPinReadByte == 1){
-	//(portPinReadByte & 0b10000000) == 0x00)
-	  	Serial.println("case 00");
-  }
-  
-  
-  delay(10);
-  
-  
-
-
-  
-  
-  
-//collect response.
-  if (Wire.available() == 0) return 0;
-  byte response =  Wire.read();
-   Serial.print("we got: ");
-   Serial.print(response, 2); //binary
-*/
 }
 
 
