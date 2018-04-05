@@ -14,6 +14,16 @@
 #define REGISTER_POLARITY_INVERSION   0x02    //register 2
 #define REGISTER_CONFIURATION         0X03    //register 3
 
+//bit masks
+#define BIT0 0b00000001
+#define BIT1 0b00000010
+#define BIT2 0b00000100
+#define BIT3 0b00001000
+#define BIT4 0b00010000
+#define BIT5 0b00100000
+#define BIT6 0b01000000
+#define BIT7 0b10000000
+
 
 /* Configuration Register:
   set to 0 for output
@@ -34,7 +44,7 @@ void setup() {
   //configure port as output, so inverted logic. 
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_CONFIURATION);
-  Wire.write(0x80); //first 7 are outputs, 8th is an input.
+  Wire.write(0x80); //first 7 are outputs, 8th is an input. (1 == input, 0 ==output) like the letters i=1, o = 0
   Wire.endTransmission();
 }
 
@@ -63,7 +73,7 @@ void loop() {
   
   
   
-	//read the button switch
+	//read the inputs
 	/*
 		* write to the address
 		* write the register address:  REGISTER_INPUT_PORT
@@ -71,7 +81,7 @@ void loop() {
 		* Read from the address , get an ack back, 
 		* then we can do a read with while wire.available();
 	*/
-  byte portPinReadByte = 54;
+  byte portPinReadByte = 0;
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_INPUT_PORT);
   Wire.endTransmission(false);
@@ -88,6 +98,23 @@ void loop() {
   Serial.println("test >> ");
   Serial.print(portPinReadByte);
   
+  if(portPinReadByte >>7 == 0){
+	 delay(100);
+
+  Wire.beginTransmission(qwiicGpioAddress);
+  Wire.write(REGISTER_OUTPUT_PORT);
+  Wire.write(0x00); //LOW
+  Wire.endTransmission();
+  
+  delay(100);
+  
+  Wire.beginTransmission(qwiicGpioAddress);
+  Wire.write(REGISTER_OUTPUT_PORT);
+  Wire.write(0x7F); //HIGH
+  Wire.endTransmission();
+ 
+  delay(100);
+  }	  
   /*while(Wire.available()){
    portPinReadByte = Wire.read();
   }
