@@ -107,7 +107,10 @@ void loop() {
   Serial.println("test >> ");
   Serial.print(readInputs());
   
-  if(inputs >>7 == 0){
+  //if(inputs >>7 == 0){ //worked but eh
+	 if(~inputs & BIT7){ //negate the read and anything thats a 1 is correct, so this is probably
+	 //when you use the configuration to set up inverting so its normal like a button read
+	 //or set up the button differently. 
 	 delay(100);
 
   Wire.beginTransmission(qwiicGpioAddress);
