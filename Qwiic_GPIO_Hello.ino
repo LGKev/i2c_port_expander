@@ -130,6 +130,9 @@ byte readRegister(byte address, byte registerToRead){
 	Wire.endTransmission(false);
 	Wire.requestFrom(address, 1);
 	
+	
+	
+	
 	byte currentRegisterValue = 0;
 	
 	byte count = 0;
@@ -140,7 +143,19 @@ byte readRegister(byte address, byte registerToRead){
 		Wire.read(); // don't collect
 		count++;
 	}
-	return currentRegisterValue;
+	
+	
+	//really gross.
+	Serial.print("******");
+	currentRegisterValue = currentRegisterValue & PIN6;
+	Serial.print(currentRegisterValue, BIN);
+	Serial.print("               >>>>>>>>>>>      ");
+	currentRegisterValue >>=5;
+	Serial.print(currentRegisterValue, BIN);
+	Serial.println("******");
+	
+	
+	return currentRegisterValue; //this makes it a 1 or a 0... probably need to flip logic
 }
 
 void writeRegister(byte address, byte registerToWrite, byte valueToWrite){
