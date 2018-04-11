@@ -7,6 +7,18 @@
 */
 
 #include <Wire.h>
+byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2 
+
+
+/*================================= DEFINES FOR DEV =================================*/
+/*===================================================================================*/
+//#define GPIO_OUTPUT_ON_OFF			//MANUALLY TRIGGER OUTPUT.
+//#define READINPUT						//read the pin state register
+#define TEST_SET_PIN_DIRECTION			//tests ability to set a pin as output or input. reads the values off, capture with Logic Analyzer 
+
+
+/*===================================================================================*/
+
 
 /* I2C Command Byte Defines  */
 #define REGISTER_INPUT_PORT           0x00    //register 0 
@@ -25,14 +37,6 @@
 #define BIT7 0b10000000
 
 
-/* Configuration Register:
-  set to 0 for output
-  set to 1 for input (default).
-*/
-
-
-byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2 
-
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -44,12 +48,103 @@ void setup() {
   //configure port as output, so inverted logic. 
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_CONFIURATION);
-  Wire.write(0x80); //first 7 are outputs, 8th is an input. (1 == input, 0 ==output) like the letters i=1, o = 0
+  Wire.write(0xF0); //last 7 are inputs, first is an output. 
   Wire.endTransmission();
 }
 
 
-//#define GPIO_OUTPUT_ON_OFF
+
+
+/* Configuration Register:
+  set to 0 for output
+  set to 1 for input (default).
+*/
+
+//digitalWrite(pin, and high low value)
+//pinMode(pin , DIRECTION);
+/*
+	This function will set a pin on the Expander as input or output. 
+	Takes in a pin number and a direction
+	uses defines SET_OUTPUT 0x00 and SET_INPUT 0X01
+	pin1 are also defines
+*/
+
+#define SET_OUTPUT 		0x00
+#define SET_INPUT 		0x01
+#define PIN1			0b00000001
+#define PIN2			0b00000010
+#define PIN3			0b00000100 //Remember everything has to be offset by 1 zero indexed. 
+#define PIN4			00b0001000
+#define PIN5 			0b00010000
+#define PIN6 			0b00100000
+#define PIN7 			0b01000000
+#define PIN8 			0b10000000
+
+void setPinMode(byte address, byte pin, byte direction){
+	Wire.beginTransmission(qwiicGpioAddress); //required to be global, or pass in so if you had multiple expanders
+	Wire.write(REGISTER_CONFIURATION);
+  
+	byte currentPinDirection = readRegister(address, REGISTER_CONFIURATION);
+
+  //don't want to change all the other pin settings so do an or equals. 
+  //but what if you wanted to change a pin direction? or equal wouldn't work. 
+  // make 2 cases, 1 for inputs which is an or equal
+		// second case is for outputs, which is a bit flip and then an or equal?
+		
+  //case 1 set as input: which is an or equal. 
+  if(direction == SET_INPUT){
+	  //get current settings and save it to local variable
+	  //do appropriate bit masking
+		currentPinDirection |= pin; // pin will come in correctly masked because of a define. 
+	  //or equal
+	  // set register.
+		Wire.beginTransmission(address);
+		Wire.write(REGISTER_CONFIURATION); 
+		Wire.write(currentPinDirection);
+		Wire.endTransmission();
+	  //done.
+  }
+  else if(direction == SET_OUTPUT){
+	  //this is case 2: we want to set as output
+	  //need to clear jsut that one bit thats a clear bit flag thign. &= ~BIT0 for example
+		currentPinDirection &= ~(pin);
+		Wire.beginTransmission(address);
+		Wire.write(REGISTER_CONFIURATION); 
+		Wire.write(currentPinDirection);
+		Wire.endTransmission();
+	  
+  }
+}
+
+/*
+	this function will read the register values of a given register. 
+	clearly it returns a byte. because 8 bit registers
+	Inputs: address, register values
+*/
+byte readRegister(byte address, byte registerToRead){
+	Wire.beginTransmission(address);
+	Wire.write(registerToRead); 
+	Wire.endTransmission(false);
+	Wire.requestFrom(address, 1);
+	
+	byte currentValue = 0;
+	
+	byte count = 0;
+	while(Wire.available() >0){
+	if(count ==0){
+		currentValue = Wire.read();
+	}
+		Wire.read(); // don't collect
+		count++;
+	}
+	return currentValue;
+}
+
+
+
+
+
+
 
 //read the inputs
 	/*
@@ -78,30 +173,28 @@ byte readInputs(){
 	return(inputValues); //use this later for bit masking.
 }
 
-
-void loop() {
-	
 #ifdef GPIO_OUTPUT_ON_OFF
-  // put your main code here, to run repeatedly:
-  delay(100);
+void loop(){
+	delay(100);
 
-  Wire.beginTransmission(qwiicGpioAddress);
-  Wire.write(REGISTER_OUTPUT_PORT);
-  Wire.write(0x00); //LOW
-  Wire.endTransmission();
+	Wire.beginTransmission(qwiicGpioAddress);
+	Wire.write(REGISTER_OUTPUT_PORT);
+	Wire.write(0x00); //LOW
+	Wire.endTransmission();
   
-  delay(100);
-  
-  Wire.beginTransmission(qwiicGpioAddress);
-  Wire.write(REGISTER_OUTPUT_PORT);
-  Wire.write(0xFF); //HIGH
-  Wire.endTransmission();
-  #endif
-  delay(100);
-  
-  
-  
+	delay(100);
+	
+	Wire.beginTransmission(qwiicGpioAddress);
+	Wire.write(REGISTER_OUTPUT_PORT);
+	Wire.write(0xFF); //HIGH
+	Wire.endTransmission();
+	delay(100);
+}
+#endif
 
+  
+#ifdef READINPUT
+void loop() {
   byte inputs = readInputs();
   
   Serial.println("test >> ");
@@ -122,15 +215,50 @@ void loop() {
   
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_OUTPUT_PORT);
-  Wire.write(0x7F); //HIGH
+  Wire.write(0xff); //HIGH
   Wire.endTransmission();
  
   delay(100);
   }	 
-  
 }
+#endif
 
 
+#ifdef TEST_SET_PIN_DIRECTION
+void loop(){
+	
+	byte value;
+	
+	//SET
+	setPinMode(qwiicGpioAddress, PIN1, SET_OUTPUT);
+	//READ
+	value = readRegister(qwiicGpioAddress, REGISTER_CONFIURATION);
+	Serial.println( value, HEX);
+	
+	//SET
+	setPinMode(qwiicGpioAddress, PIN8, SET_INPUT);
+	//READ
+	value = readRegister(qwiicGpioAddress, REGISTER_CONFIURATION);
+	Serial.println(value, HEX);
+	
+	
+	
+	
+	//force all 0
+		Wire.beginTransmission(qwiicGpioAddress);
+		Wire.write(REGISTER_CONFIURATION); 
+		Wire.write(0XFF);
+		Wire.endTransmission();
+			delay(100);
+
+	
+}
+#endif
+
+/*================================= HELPER FUNCTION =================================*/
+/*===================================================================================*/
+/*===================================================================================*/
+/*===================================================================================*/
 
 // testForConnectivity() checks for an ACK from an Relay. If no ACK
 // program freezes and notifies user.
