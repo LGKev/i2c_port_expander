@@ -14,8 +14,8 @@ byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2
 /*===================================================================================*/
 //#define GPIO_OUTPUT_ON_OFF			//MANUALLY TRIGGER OUTPUT.
 //#define READINPUT						//read the pin state register
-#define TEST_SET_PIN_DIRECTION			//tests ability to set a pin as output or input. reads the values off, capture with Logic Analyzer 
-
+//#define TEST_SET_PIN_DIRECTION			//tests ability to set a pin as output or input. reads the values off, capture with Logic Analyzer 
+#define TEST_SET_OUTPUT					//test the ability to set a pin as high or low. 
 
 /*===================================================================================*/
 
@@ -36,6 +36,18 @@ byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2
 #define BIT6 0b01000000
 #define BIT7 0b10000000
 
+#define SET_OUTPUT 		0x00
+#define SET_INPUT 		0x01
+#define PIN1			0b00000001
+#define PIN2			0b00000010
+#define PIN3			0b00000100 //Remember everything has to be offset by 1 zero indexed. 
+#define PIN4			00b0001000
+#define PIN5 			0b00010000
+#define PIN6 			0b00100000
+#define PIN7 			0b01000000
+#define PIN8 			0b10000000
+
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -48,17 +60,12 @@ void setup() {
   //configure port as output, so inverted logic. 
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_CONFIURATION);
-  Wire.write(0xF0); //last 7 are inputs, first is an output. 
+  Wire.write(0xf0); //arbitrarily chosen just so effect of setPinMode can be seen.
   Wire.endTransmission();
 }
 
 
 
-
-/* Configuration Register:
-  set to 0 for output
-  set to 1 for input (default).
-*/
 
 //digitalWrite(pin, and high low value)
 //pinMode(pin , DIRECTION);
@@ -68,18 +75,6 @@ void setup() {
 	uses defines SET_OUTPUT 0x00 and SET_INPUT 0X01
 	pin1 are also defines
 */
-
-#define SET_OUTPUT 		0x00
-#define SET_INPUT 		0x01
-#define PIN1			0b00000001
-#define PIN2			0b00000010
-#define PIN3			0b00000100 //Remember everything has to be offset by 1 zero indexed. 
-#define PIN4			00b0001000
-#define PIN5 			0b00010000
-#define PIN6 			0b00100000
-#define PIN7 			0b01000000
-#define PIN8 			0b10000000
-
 void setPinMode(byte address, byte pin, byte direction){
 	Wire.beginTransmission(qwiicGpioAddress); //required to be global, or pass in so if you had multiple expanders
 	Wire.write(REGISTER_CONFIURATION);
@@ -98,20 +93,28 @@ void setPinMode(byte address, byte pin, byte direction){
 		currentPinDirection |= pin; // pin will come in correctly masked because of a define. 
 	  //or equal
 	  // set register.
+	  
+	  	writeRegister(address, REGISTER_CONFIURATION, currentPinDirection );
+		/* this should work still, taken care of the function above.
 		Wire.beginTransmission(address);
 		Wire.write(REGISTER_CONFIURATION); 
 		Wire.write(currentPinDirection);
 		Wire.endTransmission();
+		*/
 	  //done.
   }
   else if(direction == SET_OUTPUT){
 	  //this is case 2: we want to set as output
-	  //need to clear jsut that one bit thats a clear bit flag thign. &= ~BIT0 for example
+	  //need to clear just that one bit thats a clear bit  &= ~BIT0 for example
 		currentPinDirection &= ~(pin);
+		writeRegister(address, REGISTER_CONFIURATION, currentPinDirection );
+		/*
 		Wire.beginTransmission(address);
 		Wire.write(REGISTER_CONFIURATION); 
 		Wire.write(currentPinDirection);
 		Wire.endTransmission();
+		*/
+		
 	  
   }
 }
@@ -127,23 +130,51 @@ byte readRegister(byte address, byte registerToRead){
 	Wire.endTransmission(false);
 	Wire.requestFrom(address, 1);
 	
-	byte currentValue = 0;
+	byte currentRegisterValue = 0;
 	
 	byte count = 0;
 	while(Wire.available() >0){
 	if(count ==0){
-		currentValue = Wire.read();
+		currentRegisterValue = Wire.read();
 	}
 		Wire.read(); // don't collect
 		count++;
 	}
-	return currentValue;
+	return currentRegisterValue;
 }
 
+void writeRegister(byte address, byte registerToWrite, byte valueToWrite){
+	Wire.beginTransmission(address);
+	Wire.write(registerToWrite); 
+	Wire.write(valueToWrite);
+	Wire.endTransmission();
+}
 
-
-
-
+/*
+	setPinOutput() will set a pin as high or low
+	input: address of the Qwiic GPIO 
+		   pin, the pin you wish to control
+		   level, the logic level HIGH or LOW.
+*/
+void setPinOutput(byte address, byte pin, byte level){
+	byte currentRegisterValue = 0;
+	Wire.beginTransmission(address);
+	Wire.write(REGISTER_OUTPUT_PORT);
+	Wire.endTransmission(false);
+	Wire.requestFrom(address, 1);
+	
+	currentRegisterValue = readRegister(address, REGISTER_OUTPUT_PORT);
+	
+	
+	if(level == HIGH){
+		currentRegisterValue |= pin;
+	}
+	else if(level == LOW){
+		currentRegisterValue &= ~pin;
+	}
+	
+	writeRegister(address, REGISTER_OUTPUT_PORT, currentRegisterValue);
+}
 
 
 //read the inputs
@@ -155,7 +186,7 @@ byte readRegister(byte address, byte registerToRead){
 		* then we can do a read with while wire.available();
 	*/
 byte readInputs(){
-  byte inputValues = 0;
+  byte currentRegisterValue = 0;
   Wire.beginTransmission(qwiicGpioAddress);
   Wire.write(REGISTER_INPUT_PORT);
   Wire.endTransmission(false);
@@ -164,14 +195,34 @@ byte readInputs(){
   byte count = 0;
   while(Wire.available()){
   if(count == 0){
-	inputValues = Wire.read();
+	currentRegisterValue = Wire.read();
   }
   Wire.read(); //IGNORE remaining bytes, we only asked for 1.
   count ++;
 	}
 	
-	return(inputValues); //use this later for bit masking.
+	return(currentRegisterValue); //use this later for bit masking.
 }
+
+#ifdef TEST_SET_OUTPUT
+void loop(){
+	//blink led with setPinOutput
+	setPinOutput(qwiicGpioAddress, PIN1, HIGH);
+	delay(100);
+	
+	setPinOutput(qwiicGpioAddress, PIN1, LOW);
+	setPinOutput(qwiicGpioAddress, PIN2, HIGH);
+	delay(100);
+	
+	setPinOutput(qwiicGpioAddress, PIN3, HIGH);
+	setPinOutput(qwiicGpioAddress, PIN2, LOW);
+	delay(100);
+	
+	setPinOutput(qwiicGpioAddress, PIN3, LOW);
+	delay(100);
+}
+#endif
+
 
 #ifdef GPIO_OUTPUT_ON_OFF
 void loop(){
