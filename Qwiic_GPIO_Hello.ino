@@ -160,21 +160,13 @@ void setPinOutput(byte address, byte pin, byte state){
 		break;
 	}
 	
-	
-	
-	
 	byte currentRegisterValue = readRegister(address, REGISTER_OUTPUT_PORT);
 	
 	if(state == LOW){ //INVERSE OF ARDUINO, but this will result in the same effect a user would expect. 
 		currentRegisterValue |= pin;
-		Serial.print("* ");
-		Serial.println(currentRegisterValue, 2);
 	}
 	else if(state == HIGH){
 		currentRegisterValue &= ~pin;
-		Serial.print("^ ");
-		Serial.println(currentRegisterValue, 2);
-
 	}
 	
 	writeRegister(address, REGISTER_OUTPUT_PORT, currentRegisterValue);
@@ -187,9 +179,7 @@ void setPinOutput(byte address, byte pin, byte state){
 */
 byte readPin(byte address, byte pin){
 	byte currentRegisterValue = readRegister( address, REGISTER_INPUT_PORT);
-		
-	
-	
+
 	switch(pin){
 		case 1: 
 		currentRegisterValue &= PIN1; 
@@ -277,9 +267,10 @@ void setup(){
 	
 	//set all outputs as off, inputs are unaffected
 	setAllPinsState(qwiicGpioAddress, LOW);
-		
-
+	
+	setPinMode(qwiicGpioAddress, 7, SET_OUTPUT);
 	setPinMode(qwiicGpioAddress, 5, SET_OUTPUT);
+	setPinMode(qwiicGpioAddress, 3, SET_OUTPUT);
 	setPinMode(qwiicGpioAddress, 4, SET_OUTPUT);
 	setPinMode(qwiicGpioAddress, 2, SET_OUTPUT);
 	
@@ -287,15 +278,12 @@ void setup(){
 	setPinMode(qwiicGpioAddress, 6, SET_INPUT);
 	setPinMode(qwiicGpioAddress, 8, SET_INPUT);
 	
-	
-	
 	//Set outputs as low
+	setPinOutput(qwiicGpioAddress, 7, LOW);
 	setPinOutput(qwiicGpioAddress, 5, LOW);
 	setPinOutput(qwiicGpioAddress, 4, LOW);
+	setPinOutput(qwiicGpioAddress, 3, LOW);
 	setPinOutput(qwiicGpioAddress, 2, LOW);
-	
-
-
 }
 
 void loop(){
@@ -306,22 +294,25 @@ void loop(){
 	while(readPin(qwiicGpioAddress, 6) == 0){
 		setPinOutput(qwiicGpioAddress, 2, HIGH);
 		setPinOutput(qwiicGpioAddress, 5, HIGH);
-		//delay(50);
-		//setPinOutput(qwiicGpioAddress, 2, LOW);
-		//delay(50);
+		delay(50);
+		setPinOutput(qwiicGpioAddress, 2, LOW);
+		delay(50);
 	}	
 	
 	setPinOutput(qwiicGpioAddress, 3, HIGH);
+	setPinOutput(qwiicGpioAddress, 4, HIGH);
 	delay(100);
 	setPinOutput(qwiicGpioAddress, 3, LOW);
+	setPinOutput(qwiicGpioAddress, 4, LOW);
 	delay(100);
 	
 	while(readPin(qwiicGpioAddress, 8) == 0){
 		setPinOutput(qwiicGpioAddress, 2, LOW);
 		setPinOutput(qwiicGpioAddress, 5, LOW);
-		//delay(50);
-		//setPinOutput(qwiicGpioAddress, 2, LOW);
-		//delay(50);
+		setPinOutput(qwiicGpioAddress, 7, HIGH);
+		delay(75);
+		setPinOutput(qwiicGpioAddress, 7, LOW);
+		delay(75);
 	}	
 
 	
@@ -621,5 +612,4 @@ void setAllPinsState(byte address, byte state){
 
 
 */
-
 
