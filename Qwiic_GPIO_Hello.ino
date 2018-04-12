@@ -43,7 +43,7 @@ byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2
 #define PIN1			0b00000001
 #define PIN2			0b00000010
 #define PIN3			0b00000100 
-#define PIN4			00b0001000
+#define PIN4			0b00001000
 #define PIN5 			0b00010000
 #define PIN6 			0b00100000
 #define PIN7 			0b01000000
@@ -51,6 +51,7 @@ byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2
 
 #define ALL_PINS_OUTPTUS		0x00
 #define ALL_PINS_INPUTS			0xFF
+
 #define ALL_PINS_LOW			0x00
 #define ALL_PINS_HIGH			0xFF
 
@@ -77,6 +78,34 @@ void setPinMode(byte address, byte pin, byte direction){
 	Wire.write(REGISTER_CONFIURATION);
 	byte currentPinDirection = readRegister(address, REGISTER_CONFIURATION);
 
+	//interpret pin number like 5 as 0b00010000 and not 0b0101
+	switch(pin){
+		case 1:
+		pin = PIN1;
+		break;
+		case 2:
+		pin = PIN2;
+		break;
+		case 3:
+		pin = PIN3;
+		break;
+		case 4:
+		pin = PIN4;
+		break;
+		case 5:
+		pin = PIN5;
+		break;
+		case 6:
+		pin = PIN6;
+		break;
+		case 7:
+		pin = PIN7;
+		break;
+		case 8:
+		pin = PIN8;
+		break;
+	}
+	
   if(direction == SET_INPUT){
 		currentPinDirection |= pin; // pin will come in correctly masked because of a define. 
   }
@@ -102,6 +131,37 @@ void setPinOutput(byte address, byte pin, byte state){
 	Wire.write(REGISTER_OUTPUT_PORT);
 	Wire.endTransmission(false);
 	Wire.requestFrom(address, 1);
+	
+	//interpret pin number like 5 as 0b00010000 and not 0b0101
+	switch(pin){
+		case 1:
+		pin = PIN1;
+		break;
+		case 2:
+		pin = PIN2;
+		break;
+		case 3:
+		pin = PIN3;
+		break;
+		case 4:
+		pin = PIN4;
+		break;
+		case 5:
+		pin = PIN5;
+		break;
+		case 6:
+		pin = PIN6;
+		break;
+		case 7:
+		pin = PIN7;
+		break;
+		case 8:
+		pin = PIN8;
+		break;
+	}
+	
+	
+	
 	
 	byte currentRegisterValue = readRegister(address, REGISTER_OUTPUT_PORT);
 	
@@ -147,7 +207,7 @@ byte readPin(byte address, byte pin){
 		return currentRegisterValue; 
 		
 		case 4: 
-		currentRegisterValue &= PIN3; ///todo FIX THIS BUG.
+		currentRegisterValue &= PIN4;
 		currentRegisterValue >>= 3;
 		return currentRegisterValue; 
 		
@@ -214,73 +274,62 @@ void setup(){
 	Wire.begin();
 
 	testForConnectivity();
-	/*
 	
-	setPinMode(qwiicGpioAddress, PIN1, SET_OUTPUT);
-	setPinOutput(qwiicGpioAddress, PIN1, LOW);
+	//set all outputs as off, inputs are unaffected
+	setAllPinsState(qwiicGpioAddress, LOW);
+		
 
-	setPinMode(qwiicGpioAddress, PIN7, SET_OUTPUT);
-	setPinMode(qwiicGpioAddress, PIN2, SET_OUTPUT);
-	
-	//Set outputs as low
-	setPinOutput(qwiicGpioAddress, PIN7, LOW);
-	setPinOutput(qwiicGpioAddress, PIN2, LOW);
+	setPinMode(qwiicGpioAddress, 5, SET_OUTPUT);
+	setPinMode(qwiicGpioAddress, 4, SET_OUTPUT);
+	setPinMode(qwiicGpioAddress, 2, SET_OUTPUT);
 	
 	//set pins 6 and 8 as input
-	setPinMode(qwiicGpioAddress, PIN6, SET_INPUT);
-	setPinMode(qwiicGpioAddress, PIN8, SET_INPUT);
-	*/
+	setPinMode(qwiicGpioAddress, 6, SET_INPUT);
+	setPinMode(qwiicGpioAddress, 8, SET_INPUT);
 	
-	setPinMode(qwiicGpioAddress, 0b00001000, SET_OUTPUT);
+	
+	
+	//Set outputs as low
+	setPinOutput(qwiicGpioAddress, 5, LOW);
+	setPinOutput(qwiicGpioAddress, 4, LOW);
+	setPinOutput(qwiicGpioAddress, 2, LOW);
+	
+
+
 }
-
-
-byte myBinary = 0b11110000;
 
 void loop(){
 	
-	//byte pinState = readRegister( qwiicGpioAddress, REGISTER_INPUT_PORT);
-	//Serial.print("show me what you got! >>> ");
-	//Serial.println(readPin(qwiicGpioAddress, 6));
-
+	
+	
+	
 	while(readPin(qwiicGpioAddress, 6) == 0){
 		setPinOutput(qwiicGpioAddress, 2, HIGH);
-		delay(50);
-		setPinOutput(qwiicGpioAddress, 2, LOW);
-		delay(50);
+		setPinOutput(qwiicGpioAddress, 5, HIGH);
+		//delay(50);
+		//setPinOutput(qwiicGpioAddress, 2, LOW);
+		//delay(50);
 	}	
-/*
-	myBinary |= PIN6;
-	Serial.println(myBinary, BIN);
+	
+	setPinOutput(qwiicGpioAddress, 3, HIGH);
+	delay(100);
+	setPinOutput(qwiicGpioAddress, 3, LOW);
 	delay(100);
 	
-	
-	myBinary &= ~PIN6;
-	Serial.println(myBinary, BIN);
-	delay(100);
-*/
+	while(readPin(qwiicGpioAddress, 8) == 0){
+		setPinOutput(qwiicGpioAddress, 2, LOW);
+		setPinOutput(qwiicGpioAddress, 5, LOW);
+		//delay(50);
+		//setPinOutput(qwiicGpioAddress, 2, LOW);
+		//delay(50);
+	}	
 
-	setPinOutput(qwiicGpioAddress, 8, HIGH);
-	delay(250);
-	setPinOutput(qwiicGpioAddress, 8, LOW); //results in pin 4 turning on off
-	//similarly sendin 5 will make pins 1 and 3 turn on off bc 0b0101 is 5 in binary. 
-	//manifestation 
-	delay(250);
 	
-	
-	
-	/*
-	
-		setPinOutput(qwiicGpioAddress, 7, HIGH);
+		/*setPinOutput(qwiicGpioAddress, 4, HIGH);
 		delay(200);
-		setPinOutput(qwiicGpioAddress, 7, LOW);
+		setPinOutput(qwiicGpioAddress, 4, LOW);
 		delay(200);
-	/*if(~(currentRegisterValue & PIN6)){
-		Serial.print(currentRegisterValue,BIN);
-		Serial.println("             testtt");
-	}
-	*/
-	
+*/
 /*
 	Serial.print("original read register: ");
 	Serial.print(currentRegisterValue, BIN);
@@ -527,12 +576,15 @@ void setAllPinsDirection(byte address, byte direction){
 	setAllPinsState set all as HIGH or LOW	
 */
 void setAllPinsState(byte address, byte state){
-	
 	if(state == HIGH){
-		writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_HIGH);
+		//writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_HIGH);
+				writeRegister(address, REGISTER_OUTPUT_PORT, 0x00);
+
 	}
 	else{
-		writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_LOW);
+		//writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_LOW);
+						writeRegister(address, REGISTER_OUTPUT_PORT, 0XFF);
+
 	}
 }
 
@@ -569,4 +621,5 @@ void setAllPinsState(byte address, byte state){
 
 
 */
+
 
