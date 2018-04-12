@@ -263,7 +263,8 @@ void loop(){
 	setPinOutput(qwiicGpioAddress, 8, HIGH);
 	delay(250);
 	setPinOutput(qwiicGpioAddress, 8, LOW); //results in pin 4 turning on off
-	//similarly sendin 5 will make pins 1 and 3 turn on off bc 0b0101 is 5 in binary.
+	//similarly sendin 5 will make pins 1 and 3 turn on off bc 0b0101 is 5 in binary. 
+	//manifestation 
 	delay(250);
 	
 	
