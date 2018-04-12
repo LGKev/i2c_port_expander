@@ -287,10 +287,6 @@ void setup(){
 }
 
 void loop(){
-	
-	
-	
-	
 	while(readPin(qwiicGpioAddress, 6) == 0){
 		setPinOutput(qwiicGpioAddress, 2, HIGH);
 		setPinOutput(qwiicGpioAddress, 5, HIGH);
@@ -314,28 +310,6 @@ void loop(){
 		setPinOutput(qwiicGpioAddress, 7, LOW);
 		delay(75);
 	}	
-
-	
-		/*setPinOutput(qwiicGpioAddress, 4, HIGH);
-		delay(200);
-		setPinOutput(qwiicGpioAddress, 4, LOW);
-		delay(200);
-*/
-/*
-	Serial.print("original read register: ");
-	Serial.print(currentRegisterValue, BIN);
-	Serial.print("  ---- masked -----      ");
-	currentRegisterValue = currentRegisterValue & PIN6;
-	Serial.print(currentRegisterValue, BIN);
-	Serial.print(">>>>>> shifted >>>>>       ");
-	currentRegisterValue >>= 5; //one less than the pin number
-	Serial.print(currentRegisterValue, BIN);
-	Serial.print("  final ------>   ");
-	Serial.println(currentRegisterValue, BIN);
-	
-	*/
-	
-	
 
 }
 #endif
@@ -579,37 +553,4 @@ void setAllPinsState(byte address, byte state){
 	}
 }
 
-/*
-  Send data to slave
-    - Start and address
-    - Send data
-    - Stop conddition
-
-  Read data from slave
-    - Start and address
-    - send requested register
-    - mast rx (this would be the request # of bytes)..
-        - like the getFirmwareVersion() function below
-
-
-  //getFirmwareVersion() returns the firmware version as a float.
-  float getFirmwareVersion() {
-  Wire.beginTransmission(address);
-  Wire.write(__REGISTER___);
-  Wire.endTransmission();
-
-  Wire.requestFrom(qwiicRelayAddress, 2); //2 BYTES for the Version Number
-
-//collect response.
-  if (Wire.available() == 0) return 0;
-  float versionNumber = Wire.read();
-  versionNumber += (float)Wire.read() / 10.0;
-
-  return (versionNumber);
-  }
-
-
-
-
-*/
 
