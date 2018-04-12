@@ -49,6 +49,10 @@ byte const qwiicGpioAddress = 0x27; //When all jumpers are closed A0, A1, A2
 #define PIN7 			0b01000000
 #define PIN8 			0b10000000
 
+#define ALL_PINS_OUTPTUS		0x00
+#define ALL_PINS_INPUTS			0xFF
+#define ALL_PINS_LOW			0x00
+#define ALL_PINS_HIGH			0xFF
 
 /*====================================================================================*//*====================================================================================*/
 // Setup
@@ -93,28 +97,25 @@ void setPinMode(byte address, byte pin, byte direction){
 			similar to digitalWrite(pin, state)
 
 */
-void setPinOutput(byte address, byte pin, byte state){
-	byte currentRegisterValue = 0;
-	
+void setPinOutput(byte address, byte pin, byte state){	
 	Wire.beginTransmission(address);
 	Wire.write(REGISTER_OUTPUT_PORT);
 	Wire.endTransmission(false);
 	Wire.requestFrom(address, 1);
 	
-	currentRegisterValue = readRegister(address, REGISTER_OUTPUT_PORT);
-	Serial.print("    ====  ");
-	Serial.println(currentRegisterValue, 2);
+	byte currentRegisterValue = readRegister(address, REGISTER_OUTPUT_PORT);
 	
 	if(state == LOW){ //INVERSE OF ARDUINO, but this will result in the same effect a user would expect. 
 		currentRegisterValue |= pin;
+		Serial.print("* ");
+		Serial.println(currentRegisterValue, 2);
 	}
 	else if(state == HIGH){
 		currentRegisterValue &= ~pin;
+		Serial.print("^ ");
+		Serial.println(currentRegisterValue, 2);
+
 	}
-	
-	Serial.print("    >>>>  ");
-	Serial.println(currentRegisterValue, 2);
-	
 	
 	writeRegister(address, REGISTER_OUTPUT_PORT, currentRegisterValue);
 }
@@ -230,16 +231,11 @@ void setup(){
 	setPinMode(qwiicGpioAddress, PIN8, SET_INPUT);
 	*/
 	
-	setPinMode(qwiicGpioAddress, PIN3, SET_OUTPUT);
-	
-	for(int i = 0; i <10; i++){
-		delay(200);
-		setPinOutput(qwiicGpioAddress, 3, HIGH);
-		delay(200);
-		setPinOutput(qwiicGpioAddress, 3, LOW);
-	}
+	setPinMode(qwiicGpioAddress, 0b00001000, SET_OUTPUT);
 }
 
+
+byte myBinary = 0b11110000;
 
 void loop(){
 	
@@ -253,12 +249,30 @@ void loop(){
 		setPinOutput(qwiicGpioAddress, 2, LOW);
 		delay(50);
 	}	
+/*
+	myBinary |= PIN6;
+	Serial.println(myBinary, BIN);
+	delay(100);
+	
+	
+	myBinary &= ~PIN6;
+	Serial.println(myBinary, BIN);
+	delay(100);
+*/
+
+	setPinOutput(qwiicGpioAddress, 8, HIGH);
+	delay(250);
+	setPinOutput(qwiicGpioAddress, 8, LOW);
+	delay(250);
+	
+	
+	
+	/*
 	
 		setPinOutput(qwiicGpioAddress, 7, HIGH);
 		delay(200);
 		setPinOutput(qwiicGpioAddress, 7, LOW);
 		delay(200);
-	
 	/*if(~(currentRegisterValue & PIN6)){
 		Serial.print(currentRegisterValue,BIN);
 		Serial.println("             testtt");
@@ -494,8 +508,31 @@ void writeRegister(byte address, byte registerToWrite, byte valueToWrite){
 	Wire.endTransmission();
 }
 
+/*
+	setAllPinsDirection set all as output or input
+	use #define for direction: SET_INPUT or SET_OUTPUT
+*/
+void setAllPinsDirection(byte address, byte direction){
+	if(direction == SET_OUTPUT){
+		writeRegister(address, REGISTER_CONFIURATION, ALL_PINS_OUTPTUS);
+	}
+	else{
+		writeRegister(address, REGISTER_CONFIURATION, ALL_PINS_INPUTS);
+	}
+}
 
-
+/*
+	setAllPinsState set all as HIGH or LOW	
+*/
+void setAllPinsState(byte address, byte state){
+	
+	if(state == HIGH){
+		writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_HIGH);
+	}
+	else{
+		writeRegister(address, REGISTER_OUTPUT_PORT, ALL_PINS_LOW);
+	}
+}
 
 /*
   Send data to slave
